@@ -27,8 +27,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lucas-clemente/quic-go"
-	"github.com/lucas-clemente/quic-go/http3"
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 	"golang.org/x/net/http2"
 )
 
@@ -243,13 +243,19 @@ func (b *Work) runWorkers() {
 		InsecureSkipVerify: true,
 		ServerName:         b.Request.Host,
 	}
+	quicConf := &quic.Config{
+		EnableDatagrams: true}
+
+	if !b.DisableKeepAlives {
+		quicConf.KeepAlivePeriod = time.Duration(b.Timeout) * time.Second
+	}
 
 	var client *http.Client
 	if b.H3 {
 		client = &http.Client{
-			Transport: &http3.RoundTripper{
+			Transport: &http3.Transport{
 				TLSClientConfig:    tlsConf,
-				QuicConfig:         &quic.Config{KeepAlive: !b.DisableKeepAlives},
+				QUICConfig:         quicConf,
 				DisableCompression: b.DisableCompression,
 			},
 			Timeout: time.Duration(b.Timeout) * time.Second,
